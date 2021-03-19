@@ -4,6 +4,7 @@ import com.example.demo_security.model.AppUser;
 import com.example.demo_security.repository.AppUserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -45,8 +46,20 @@ public class AppUserService implements IAppUserService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         AppUser appUser = appUserRepository.getByUsername(username);
+        /*if (appUser == null) return null;*/
+        if (appUser == null) throw new UsernameNotFoundException("Username not found in DB!");
         List<GrantedAuthority> roles = new ArrayList<>();
         roles.add(appUser.getRole());
         return new User(username, appUser.getPassword(), roles);
+    }
+
+    @Override
+    public AppUser getCurrentUser() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (principal instanceof UserDetails) {
+            return appUserRepository.getByUsername(((UserDetails) principal).getUsername());
+        } else {
+            return appUserRepository.getByUsername(principal.toString());
+        }
     }
 }
